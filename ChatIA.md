@@ -1,3 +1,17 @@
+---
+
+**Usuário:**
+aqui as especificações de backend para o meu projeto: Entidade Produto: id, nome, descricao?, preco, estoque, categoria, sku?
+• Entidade Pedido (opcional simplificada): id, total_final, data
+• Endpoints
+	o GET /produtos?search=&categoria=&sort=
+	o POST /produtos
+	o PUT /produtos/{id}
+	o DELETE /produtos/{id}
+	o POST /carrinho/confirmar (body com itens; valida estoque; aplica cupom “ALUNO10”; baixa estoque; cria pedido)
+Validações coerentes no back-end (espelhando as do front).
+• Respostas com mensagens claras de erro.
+• Seeds de dados plausíveis (20 registros).
 # ChatIA
 
 Este arquivo é dedicado para registrar todas as conversas com a IA durante o desenvolvimento do projeto de aprendizagem.
@@ -37,6 +51,53 @@ Agora, eu preciso que vc crie para mim essas estruturas de pastas, por favor: /f
 **IA:**
 <<<<<<< HEAD
 As estruturas de pastas e arquivos foram criadas conforme solicitado, incluindo frontend, backend, scripts, banco SQLite, seed, arquivos de documentação e um arquivo de testes manuais (.http). Se precisar de ajustes ou do próximo passo, é só avisar!
+
+---
+
+**Usuário:**
+olá, tudo bem?
+
+**IA:**
+Olá! Tudo ótimo, obrigado por perguntar. Como posso ajudar você hoje no seu projeto?
+
+**Usuário:**
+lembre-se de colocar nossas conversar dentro do arquivo ChatIA.md
+
+**IA:**
+Conversa registrada no arquivo ChatIA.md conforme solicitado. Sempre que houver uma nova interação, ela será adicionada aqui.
+
+---
+
+**Usuário:**
+essas são algumas especifícações do front-end do meu projeto: Vendas de Produtos (Catálogo e Carrinho)
+Identidade visual
+• Primária: #0EA5E9 (azul claro)
+• Secundária: #EF4444 (vermelho)
+• Acento: #22C55E (verde)
+• Fundo: #FFFFFF
+
+• Texto: #111827
+• Fonte sugerida: “Poppins” ou “Inter” (fallback sans-serif)
+Layout
+• Header com logomarca “Loja Escolar” + ícone do carrinho (badge de quantidade).
+• Grid responsivo de cards de produtos (imagem, nome, preço, estoque).
+• Drawer/Modal de carrinho (lista itens, subtotal, cupom).
+Páginas/Seções
+1. Catálogo: grid de produtos com busca por nome.
+2. Carrinho: drawer/modal com itens.
+3. Admin (front): formulário de produto (somente enquanto não há autenticação).
+Formulário de Produto (front)
+• Campos: nome* (3–60), descricao (textarea), preco* (decimal ≥ 0.01), estoque* (int ≥ 0), categoria* (select), sku (opcional).
+• Validações front: required, min/max, número positivo, preço com 2 casas.
+Interações JS
+• CRUD via fetch.
+• Carrinho no localStorage (adicionar/remover/atualizar).
+• Cupom: aplicar código “ALUNO10” (10% off) no front e validar no back.
+• Ordenação por preço (asc/desc) e por nome.
+• Acessibilidade: botões com aria-pressed e leitura clara para screen readers.
+Regra de negócio (front + back)
+• Não permitir adicionar ao carrinho se estoque=0.
+• Ao confirmar “pedido” (mock), reduzir estoque na API e registrar total_final (com cupom, se válido).
 
 **Usuário:**
 tudo bem, agora quero que vc dê commit para mim, por favor
