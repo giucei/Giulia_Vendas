@@ -88,12 +88,25 @@ function addToCart(id) {
     if (!prod || prod.estoque === 0) return;
     let cart = getCart();
     const idx = cart.findIndex(item => item.id === id);
+    // Efeito visual no botão
+    const grid = document.getElementById('product-grid');
+    // Busca o botão correto pelo id do produto
+    const btn = Array.from(grid.querySelectorAll('button')).find(b => b && b.getAttribute('onclick') === `addToCart(${id})`);
+    if (btn) {
+        btn.classList.add('added');
+        setTimeout(() => btn.classList.remove('added'), 700);
+    }
     if (idx > -1) {
         if (cart[idx].qtd < prod.estoque) {
             cart[idx].qtd++;
+            showToast('Mais uma unidade adicionada ao carrinho!');
+        } else {
+            showToast('Limite de estoque atingido!');
+            return;
         }
     } else {
         cart.push({id, qtd: 1});
+        showToast('Produto adicionado ao carrinho!');
     }
     setCart(cart);
 }
