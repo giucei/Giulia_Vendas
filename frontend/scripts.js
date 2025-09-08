@@ -83,19 +83,38 @@ function filterAndSortProducts() {
     renderProducts(filtered);
 }
 
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    // Força um reflow para garantir que a animação funcione
+    toast.offsetHeight;
+    
+    toast.classList.add('show');
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 2000);
+}
+
 function addToCart(id) {
     const prod = produtos.find(p => p.id === id);
     if (!prod || prod.estoque === 0) return;
     let cart = getCart();
     const idx = cart.findIndex(item => item.id === id);
+    
     // Efeito visual no botão
     const grid = document.getElementById('product-grid');
-    // Busca o botão correto pelo id do produto
     const btn = Array.from(grid.querySelectorAll('button')).find(b => b && b.getAttribute('onclick') === `addToCart(${id})`);
     if (btn) {
         btn.classList.add('added');
         setTimeout(() => btn.classList.remove('added'), 700);
     }
+    
     if (idx > -1) {
         if (cart[idx].qtd < prod.estoque) {
             cart[idx].qtd++;
@@ -108,7 +127,10 @@ function addToCart(id) {
         cart.push({id, qtd: 1});
         showToast('Produto adicionado ao carrinho!');
     }
+    
+    // Atualiza o carrinho e o badge
     setCart(cart);
+    updateCartBadge();
 }
 
 function toggleCart() {
