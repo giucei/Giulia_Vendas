@@ -1,42 +1,130 @@
-from fastapi import FastAPI, HTTPException
+
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 import sqlite3
-from models import Item
-import seed
+from models import Produto, Pedido
+from datetime import datetime
 
 app = FastAPI()
 
-@app.get("/items", response_model=list[Item])
-def get_items():
+# GET /produtos?search=&categoria=&sort=
+@app.get("/produtos", response_model=list[Produto])
+def get_produtos(search: str = "", categoria: str = "", sort: str = ""):
     conn = sqlite3.connect('app.db')
     cursor = conn.cursor()
-    cursor.execute("SELECT id, nome, descricao FROM items")
-    items = cursor.fetchall()
+    query = "SELECT id, nome, descricao, preco, estoque, categoria, sku FROM produtos WHERE 1=1"
+    params = []
+    if search:
+        query += " AND nome LIKE ?"
+        params.append(f"%{search}%")
+    if categoria:
+        query += " AND categoria = ?"
+        params.append(categoria)
+    if sort == "name-asc":
+        query += " ORDER BY nome ASC"
+    elif sort == "name-desc":
+        query += " ORDER BY nome DESC"
+    elif sort == "price-asc":
+        query += " ORDER BY preco ASC"
+    elif sort == "price-desc":
+        query += " ORDER BY preco DESC"
+    cursor.execute(query, params)
+    produtos = cursor.fetchall()
     conn.close()
-    return [Item(id=row[0], nome=row[1], descricao=row[2]) for row in items]
+    return [Produto(id=row[0], nome=row[1], descricao=row[2], preco=row[3], estoque=row[4], categoria=row[5], sku=row[6]) for row in produtos]
 
-@app.post("/items", status_code=201)
-def create_item(item: Item):
+# POST /produtos
+@app.post("/produtos", response_model=Produto, status_code=201)
+def create_produto(produto: Produto):
+    if len(produto.nome) < 3 or len(produto.nome) > 60:
+        raise HTTPException(status_code=422, detail="Nome deve ter entre 3 e 60 caracteres.")
+    if produto.preco <= 0:
+        raise HTTPException(status_code=422, detail="Preço deve ser maior que zero.")
+    if produto.estoque < 0:
+        raise HTTPException(status_code=422, detail="Estoque não pode ser negativo.")
+    if not produto.categoria or len(produto.categoria) < 2:
+        raise HTTPException(status_code=422, detail="Categoria obrigatória.")
     conn = sqlite3.connect('app.db')
     cursor = conn.cursor()
     try:
-        cursor.execute("INSERT INTO items (nome, descricao) VALUES (?, ?)", (item.nome, item.descricao))
+        cursor.execute("INSERT INTO produtos (nome, descricao, preco, estoque, categoria, sku) VALUES (?, ?, ?, ?, ?, ?)",
+                       (produto.nome, produto.descricao, produto.preco, produto.estoque, produto.categoria, produto.sku))
         conn.commit()
-        item_id = cursor.lastrowid
+        produto_id = cursor.lastrowid
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=f"Erro ao criar produto: {str(e)}")
     finally:
         conn.close()
-    return {"id": item_id, **item.dict()}
+    return Produto(id=produto_id, **produto.dict())
 
-@app.get("/items/{item_id}")
-def get_item(item_id: int):
+# PUT /produtos/{id}
+@app.put("/produtos/{produto_id}", response_model=Produto)
+def update_produto(produto_id: int, produto: Produto):
     conn = sqlite3.connect('app.db')
     cursor = conn.cursor()
-    cursor.execute("SELECT id, nome, descricao FROM items WHERE id = ?", (item_id,))
-    row = cursor.fetchone()
+    cursor.execute("SELECT id FROM produtos WHERE id = ?", (produto_id,))
+    if not cursor.fetchone():
+        conn.close()
+        raise HTTPException(status_code=404, detail="Produto não encontrado.")
+    try:
+        cursor.execute("UPDATE produtos SET nome=?, descricao=?, preco=?, estoque=?, categoria=?, sku=? WHERE id=?",
+                       (produto.nome, produto.descricao, produto.preco, produto.estoque, produto.categoria, produto.sku, produto_id))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=400, detail=f"Erro ao atualizar produto: {str(e)}")
+    finally:
+        conn.close()
+    return Produto(id=produto_id, **produto.dict())
+
+# DELETE /produtos/{id}
+@app.delete("/produtos/{produto_id}", status_code=204)
+def delete_produto(produto_id: int):
+    conn = sqlite3.connect('app.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM produtos WHERE id = ?", (produto_id,))
+    if not cursor.fetchone():
+        conn.close()
+        raise HTTPException(status_code=404, detail="Produto não encontrado.")
+    try:
+        cursor.execute("DELETE FROM produtos WHERE id = ?", (produto_id,))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=400, detail=f"Erro ao deletar produto: {str(e)}")
+    finally:
+        conn.close()
+    return JSONResponse(status_code=204, content={})
+
+# POST /carrinho/confirmar
+@app.post("/carrinho/confirmar", response_model=Pedido)
+def confirmar_carrinho(itens: list[dict], cupom: str = ""):
+    conn = sqlite3.connect('app.db')
+    cursor = conn.cursor()
+    total = 0.0
+    for item in itens:
+        cursor.execute("SELECT preco, estoque FROM produtos WHERE id = ?", (item.get('id'),))
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            raise HTTPException(status_code=404, detail=f"Produto id {item.get('id')} não encontrado.")
+        preco, estoque = row
+        if estoque < item.get('qtd', 1):
+            conn.close()
+            raise HTTPException(status_code=400, detail=f"Estoque insuficiente para produto id {item.get('id')}.")
+        total += preco * item.get('qtd', 1)
+    desconto = 0.0
+    if cupom == "ALUNO10":
+        desconto = total * 0.10
+    total_final = total - desconto
+    # Baixa estoque
+    for item in itens:
+        cursor.execute("UPDATE produtos SET estoque = estoque - ? WHERE id = ?", (item.get('qtd', 1), item.get('id')))
+    # Cria pedido
+    data = datetime.now().isoformat()
+    cursor.execute("INSERT INTO pedidos (total_final, data) VALUES (?, ?)", (total_final, data))
+    pedido_id = cursor.lastrowid
+    conn.commit()
     conn.close()
-    if row:
-        return Item(id=row[0], nome=row[1], descricao=row[2])
-    raise HTTPException(status_code=404, detail="Item não encontrado")
+    return Pedido(id=pedido_id, total_final=total_final, data=data)
