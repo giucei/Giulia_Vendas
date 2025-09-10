@@ -36,24 +36,36 @@ function setCart(cart) {
 
 function updateCartBadge() {
     const badge = document.getElementById('cart-badge');
+    if (!badge) return;
     const cart = getCart();
-    badge.textContent = cart.reduce((sum, item) => sum + item.qtd, 0);
+    const total = cart.reduce((sum, item) => sum + item.qtd, 0);
+    badge.textContent = total.toString();
+    badge.style.display = total > 0 ? 'block' : 'none';
 }
 
 function renderProducts(list) {
     const grid = document.getElementById('product-grid');
+    const template = document.getElementById('product-template');
+    
     grid.innerHTML = '';
+    
     list.forEach(prod => {
-        const card = document.createElement('div');
-        card.className = 'product-card';
-        card.tabIndex = 0;
-        card.innerHTML = `
-            <img src="${prod.imagem}" alt="Imagem de ${prod.nome}">
-            <div class="prod-name">${prod.nome}</div>
-            <div class="prod-price">R$ ${prod.preco.toFixed(2)}</div>
-            <div class="prod-stock">${prod.estoque > 0 ? 'Estoque: ' + prod.estoque : '<span style=\'color:#EF4444\'>Esgotado</span>'}</div>
-            <button aria-pressed="false" ${prod.estoque === 0 ? 'disabled' : ''} onclick="addToCart(${prod.id})">Adicionar</button>
-        `;
+        const card = template.content.cloneNode(true);
+        const cardEl = card.querySelector('.product-card');
+        
+        cardEl.querySelector('img').src = prod.imagem;
+        cardEl.querySelector('img').alt = `Imagem de ${prod.nome}`;
+        cardEl.querySelector('.product-name').textContent = prod.nome;
+        cardEl.querySelector('.product-price').textContent = `R$ ${prod.preco.toFixed(2)}`;
+        cardEl.querySelector('.product-stock').innerHTML = 
+            prod.estoque > 0 
+                ? `Estoque: ${prod.estoque}` 
+                : '<span class="out-of-stock">Esgotado</span>';
+        
+        const addButton = cardEl.querySelector('.add-to-cart');
+        addButton.disabled = prod.estoque === 0;
+        addButton.dataset.id = prod.id;
+        
         grid.appendChild(card);
     });
 }
@@ -248,20 +260,135 @@ document.getElementById('filter-preco-max').addEventListener('input', filterAndS
 document.getElementById('filter-estoque').addEventListener('input', filterAndSortProducts);
 document.getElementById('coupon').addEventListener('input', function() { renderCart(); });
 
+// Funções de navegação e UI
+function navigate(page) {
+    const links = document.querySelectorAll('.main-nav a');
+    links.forEach(link => link.classList.remove('active'));
+    const currentLink = Array.from(links).find(link => link.textContent.toLowerCase() === page);
+    if (currentLink) currentLink.classList.add('active');
+    
+    // Aqui você pode adicionar a lógica de navegação real quando implementar as outras páginas
+    showToast(`Navegando para ${page}`);
+}
+
+function focusSearch() {
+    const searchInput = document.getElementById('search');
+    searchInput.focus();
+    // Scroll suave até o campo de busca
+    searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+let currentTheme = localStorage.getItem('theme') || 'light';
+function toggleTheme() {
+    currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+    document.body.classList.toggle('dark-theme');
+    localStorage.setItem('theme', currentTheme);
+}
+
+// Exporta funções para o escopo global
 window.addToCart = addToCart;
 window.toggleCart = toggleCart;
 window.removeFromCart = removeFromCart;
 window.applyCoupon = applyCoupon;
 window.checkout = checkout;
+window.toggleAdmin = toggleAdmin;
+window.navigate = navigate;
+window.focusSearch = focusSearch;
+window.toggleTheme = toggleTheme;
 
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Inicialização do tema
+    if (currentTheme === 'dark') {
+        document.body.classList.add('dark-theme');
+    }
+    
+    // Inicialização do carrinho
+    const cart = getCart();
+    updateCartBadge();
+    
+    // Inicialização do catálogo
     fillCategorias();
     fillFilterCategorias();
+    
     // Restaurar ordenação persistida
     const savedSort = localStorage.getItem('sort');
     if (savedSort) document.getElementById('sort').value = savedSort;
+    
+    // Renderizar produtos iniciais
+    renderProducts(produtos);
+    
+    // Aplicar filtros iniciais
     filterAndSortProducts();
-    updateCartBadge();
     document.getElementById('search').focus();
 });
+
+// Funções do Painel Administrativo
+window.toggleAdmin = function() {
+    const panel = document.getElementById('admin-panel');
+    const isOpen = !panel.hidden;
+    panel.hidden = isOpen;
+    
+    if (!isOpen) {
+        // Limpa o formulário ao abrir
+        document.getElementById('product-form').reset();
+    }
+}
+
+// Adiciona o produto à lista (mock)
+document.getElementById('product-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        nome: document.getElementById('prod-name').value.trim(),
+        descricao: document.getElementById('prod-desc').value.trim(),
+        preco: parseFloat(document.getElementById('prod-price').value),
+        estoque: parseInt(document.getElementById('prod-stock').value),
+        imagem: document.getElementById('prod-img').value.trim() || 'https://via.placeholder.com/150',
+        id: produtos.length + 1
+    };
+    
+    if (!formData.nome || isNaN(formData.preco) || isNaN(formData.estoque)) {
+        showToast('Por favor, preencha todos os campos obrigatórios');
+        return;
+    }
+    
+    // Adiciona o produto à lista (mock)
+    produtos.push(formData);
+    showToast('Produto adicionado com sucesso!');
+    
+    // Atualiza a visualização
+    filterAndSortProducts();
+    
+    // Fecha o painel e limpa o formulário
+    toggleAdmin();
+    this.reset();
+});
+
+function navigate(page) {
+    // Remove a classe active de todos os links
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+
+    // Adiciona a classe active no link clicado
+    const clickedLink = document.querySelector(`[onclick="navigate('${page}')"]`);
+    if (clickedLink) {
+        clickedLink.classList.add('active');
+    }
+
+    // Aqui você pode adicionar a lógica para carregar o conteúdo da página
+    switch (page) {
+        case 'home':
+            window.location.href = 'index.html';
+            break;
+        case 'novidades':
+            // Filtra produtos por novidades
+            // Implementar lógica de novidades
+            break;
+        case 'ofertas':
+            // Filtra produtos por ofertas
+            // Implementar lógica de ofertas
+            break;
+    }
+}

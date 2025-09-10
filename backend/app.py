@@ -2,7 +2,7 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 import sqlite3
-from models import Produto, Pedido
+from models import Produto, Pedido, Carrinho, CarrinhoItem
 from datetime import datetime
 
 app = FastAPI()
@@ -98,6 +98,80 @@ def delete_produto(produto_id: int):
     return JSONResponse(status_code=204, content={})
 
 # POST /carrinho/confirmar
+@app.post("/carrinho/confirmar", status_code=201)
+def confirmar_carrinho(carrinho: Carrinho):
+    conn = sqlite3.connect('app.db')
+    cursor = conn.cursor()
+    
+    try:
+        # Validar e processar itens
+        subtotal = 0
+        items_processados = []
+        
+        for item in carrinho.items:
+            # Verificar produto e estoque
+            cursor.execute("SELECT preco, estoque FROM produtos WHERE id = ?", (item.produto_id,))
+            result = cursor.fetchone()
+            if not result:
+                raise HTTPException(status_code=404, detail=f"Produto {item.produto_id} não encontrado")
+            
+            preco, estoque = result
+            if estoque < item.quantidade:
+                raise HTTPException(status_code=400, detail=f"Estoque insuficiente para produto {item.produto_id}")
+            
+            # Calcular subtotal do item
+            item_subtotal = preco * item.quantidade
+            subtotal += item_subtotal
+            
+            items_processados.append({
+                "produto_id": item.produto_id,
+                "quantidade": item.quantidade,
+                "preco_unitario": preco,
+                "subtotal": item_subtotal
+            })
+            
+            # Atualizar estoque
+            novo_estoque = estoque - item.quantidade
+            cursor.execute("UPDATE produtos SET estoque = ? WHERE id = ?", 
+                         (novo_estoque, item.produto_id))
+        
+        # Aplicar desconto se cupom válido
+        desconto = 0
+        if carrinho.cupom == "ALUNO10":
+            desconto = subtotal * 0.1
+        
+        total_final = subtotal - desconto
+        
+        # Criar pedido
+        cursor.execute("""
+            INSERT INTO pedidos (cupom, subtotal, desconto, total_final, data)
+            VALUES (?, ?, ?, ?, ?)
+        """, (carrinho.cupom, subtotal, desconto, total_final, datetime.now().isoformat()))
+        
+        pedido_id = cursor.lastrowid
+        
+        # Inserir items do pedido
+        for item in items_processados:
+            cursor.execute("""
+                INSERT INTO items_pedido (pedido_id, produto_id, quantidade, 
+                                        preco_unitario, subtotal)
+                VALUES (?, ?, ?, ?, ?)
+            """, (pedido_id, item["produto_id"], item["quantidade"], 
+                  item["preco_unitario"], item["subtotal"]))
+        
+        conn.commit()
+        return {
+            "pedido_id": pedido_id,
+            "subtotal": subtotal,
+            "desconto": desconto,
+            "total_final": total_final
+        }
+    
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        conn.close()
 @app.post("/carrinho/confirmar", response_model=Pedido)
 def confirmar_carrinho(itens: list[dict], cupom: str = ""):
     conn = sqlite3.connect('app.db')

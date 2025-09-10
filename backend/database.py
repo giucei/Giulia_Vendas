@@ -17,8 +17,24 @@ def create_db():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS pedidos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            cupom TEXT,
+            subtotal REAL NOT NULL,
+            desconto REAL NOT NULL,
             total_final REAL NOT NULL,
             data TEXT NOT NULL
+        )
+    ''')
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS items_pedido (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pedido_id INTEGER NOT NULL,
+            produto_id INTEGER NOT NULL,
+            quantidade INTEGER NOT NULL,
+            preco_unitario REAL NOT NULL,
+            subtotal REAL NOT NULL,
+            FOREIGN KEY (pedido_id) REFERENCES pedidos (id),
+            FOREIGN KEY (produto_id) REFERENCES produtos (id)
         )
     ''')
     conn.commit()

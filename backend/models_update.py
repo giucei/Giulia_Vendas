@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
+from enum import Enum
 
 class Produto(BaseModel):
     id: Optional[int] = None
@@ -11,6 +12,30 @@ class Produto(BaseModel):
     categoria: str = Field(..., min_length=2, max_length=30)
     sku: Optional[str] = None
 
+class StatusPedido(str, Enum):
+    PENDENTE = "pendente"
+    CONFIRMADO = "confirmado"
+    ENVIADO = "enviado"
+    ENTREGUE = "entregue"
+    CANCELADO = "cancelado"
+
+class ItemPedido(BaseModel):
+    produto_id: int
+    quantidade: int = Field(..., gt=0)
+    preco_unitario: float
+    subtotal: float
+
+class Pedido(BaseModel):
+    id: Optional[int] = None
+    cliente_nome: str = Field(..., min_length=3)
+    cliente_email: str
+    items: List[ItemPedido]
+    total_produtos: float
+    desconto: float = 0
+    total_final: float
+    status: StatusPedido = StatusPedido.PENDENTE
+    data: datetime = Field(default_factory=datetime.now)
+
 class CarrinhoItem(BaseModel):
     produto_id: int
     quantidade: int = Field(..., gt=0)
@@ -18,18 +43,3 @@ class CarrinhoItem(BaseModel):
 class Carrinho(BaseModel):
     items: List[CarrinhoItem]
     cupom: Optional[str] = None
-
-class ItemPedido(BaseModel):
-    produto_id: int
-    quantidade: int
-    preco_unitario: float
-    subtotal: float
-
-class Pedido(BaseModel):
-    id: Optional[int] = None
-    items: List[ItemPedido]
-    cupom: Optional[str] = None
-    subtotal: float
-    desconto: float = 0
-    total_final: float
-    data: datetime = Field(default_factory=datetime.now)
