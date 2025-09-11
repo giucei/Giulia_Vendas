@@ -1,0 +1,18 @@
+### Testes manuais para API FastAPI
+
+# Listar todos os itens
+GET http://localhost:8000/items
+Accept: application/json
+
+### Criar novo item
+POST http://localhost:8000/items
+Content-Type: application/json
+
+{
+  "nome": "Exemplo de Item",
+  "descricao": "Descrição do item de teste."
+}
+
+### Buscar item por ID
+GET http://localhost:8000/items/1
+Accept: application/json
