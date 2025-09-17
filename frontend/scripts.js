@@ -383,12 +383,12 @@ function navigate(page) {
             window.location.href = 'index.html';
             break;
         case 'novidades':
-            // Filtra produtos por novidades
-            // Implementar lógica de novidades
+            window.location.href = 'catalog.html?filter=novidades';
             break;
         case 'ofertas':
-            // Filtra produtos por ofertas
-            // Implementar lógica de ofertas
+            window.location.href = 'catalog.html?filter=ofertas';
             break;
+        default:
+            window.location.href = 'catalog.html';
     }
 }

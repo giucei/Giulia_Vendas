@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PaperMate • Catálogo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="toast.css">
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <a href="index.html">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M17 17.9l.1-.1.9-.9C19.9 15 21 12.6 21 10c0-4.4-3.6-8-8-8S5 5.6 5 10c0 2.6 1.1 5 3 6.9l.9.9.1.1v.1l-.2.6c-.2.6-.3 1.3-.3 1.9 0 .9.2 1.7.5 2.5h2c-.4-.9-.5-1.9-.5-3 0-1 .2-1.9.6-2.7l.4-.9v-.2l-.1-.1-.8-.8C9.4 14.2 8.5 12.2 8.5 10c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5c0 2.2-.9 4.2-2.4 5.3l-.8.8-.1.1v.2l.4.9c.4.8.6 1.7.6 2.7 0 1.1-.2 2.1-.5 3h2c.3-.8.5-1.6.5-2.5 0-.6-.1-1.3-.3-1.9l-.2-.6v-.1z"/>
+                </svg>
+                <span>PaperMate</span>
+            </a>
+        </div>
+        <button class="cart-btn" onclick="toggleCart()" aria-label="Abrir carrinho">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+            </svg>
+            <span id="cart-badge" class="badge" hidden>0</span>
+        </button>
+    </header>
+
+    <main>
+        <section class="catalog-section">
+            <form class="filters" onsubmit="return false">
+                <input type="search" id="search" placeholder="Buscar produto..." aria-label="Buscar produto por nome" tabindex="1">
+                <select id="filter-categoria" aria-label="Filtrar por categoria" tabindex="2">
+                    <option value="">Todas categorias</option>
+                </select>
+                <input type="number" id="filter-preco-min" placeholder="Preço mín" min="0" step="0.01" aria-label="Preço mínimo" tabindex="3">
+                <input type="number" id="filter-preco-max" placeholder="Preço máx" min="0" step="0.01" aria-label="Preço máximo" tabindex="4">
+                <input type="number" id="filter-estoque" placeholder="Estoque mín" min="0" step="1" aria-label="Estoque mínimo" tabindex="5">
+                <select id="sort" aria-label="Ordenar produtos" tabindex="6">
+                    <option value="name-asc">Nome (A-Z)</option>
+                    <option value="name-desc">Nome (Z-A)</option>
+                    <option value="price-asc">Preço (menor)</option>
+                    <option value="price-desc">Preço (maior)</option>
+                </select>
+            </form>
+
+            <div id="product-grid" class="product-grid" role="list">
+                <template id="product-template">
+                    <div class="product-card" tabindex="0">
+                        <img src="" alt="">
+                        <div class="product-info">
+                            <h3 class="product-name"></h3>
+                            <div class="product-price"></div>
+                            <div class="product-stock"></div>
+                            <button class="add-to-cart" onclick="addToCart(this.dataset.id)" data-id="">
+                                Adicionar ao Carrinho
+                            </button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </section>
+
+        <!-- Admin Panel -->
+        <button id="open-admin" class="floating-button" aria-label="Gerenciar Produtos" onclick="toggleAdmin()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+            </svg>
+        </button>
+
+        <div id="admin-panel" class="admin-panel" hidden>
+            <div class="admin-content">
+                <header class="admin-header">
+                    <h2>Gerenciar Produto</h2>
+                    <button class="close-button" onclick="toggleAdmin()" aria-label="Fechar painel">×</button>
+                </header>
+                
+                <form id="product-form" class="form-grid">
+                    <div class="form-group">
+                        <label for="prod-name">Nome do Produto*</label>
+                        <input type="text" id="prod-name" name="nome" required minlength="3" maxlength="60" 
+                            placeholder="Ex: Caderno Universitário">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="prod-desc">Descrição</label>
+                        <textarea id="prod-desc" name="descricao" 
+                            placeholder="Descreva o produto..."></textarea>
+                    </div>
+                    
+                    <div class="form-group form-group-half">
+                        <label for="prod-preco">Preço*</label>
+                        <div class="input-prefix">
+                            <span>R$</span>
+                            <input type="number" id="prod-preco" name="preco" min="0.01" step="0.01" required
+                                placeholder="0,00">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group form-group-half">
+                        <label for="prod-estoque">Estoque*</label>
+                        <input type="number" id="prod-estoque" name="estoque" min="0" step="1" required
+                            placeholder="Quantidade">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="prod-categoria">Categoria*</label>
+                        <select id="prod-categoria" name="categoria" required>
+                            <option value="">Selecione uma categoria</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="prod-sku">SKU</label>
+                        <input type="text" id="prod-sku" name="sku" placeholder="Código do produto">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="prod-imagem">URL da Imagem</label>
+                        <input type="url" id="prod-imagem" name="imagem" placeholder="https://...">
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="button-secondary" onclick="resetForm()">Limpar</button>
+                        <button type="submit" class="button-primary">Salvar Produto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Cart Drawer -->
+        <div id="cart-drawer" class="cart-drawer" aria-label="Carrinho de compras" aria-modal="true" role="dialog" hidden>
+            <button class="close-cart" aria-label="Fechar carrinho" onclick="toggleCart()">&times;</button>
+            <h2>Carrinho</h2>
+            <ul id="cart-items" class="cart-items"></ul>
+            <div class="cart-summary">
+                <label for="coupon">Cupom:</label>
+                <input type="text" id="coupon" placeholder="Digite o cupom">
+                <button onclick="applyCoupon()">Aplicar</button>
+                <div id="cart-subtotal">Subtotal: R$ 0,00</div>
+                <div id="cart-discount" hidden>Desconto: R$ 0,00</div>
+                <div id="cart-total">Total: R$ 0,00</div>
+                <button id="checkout-btn" onclick="checkout()">Finalizar Pedido</button>
+            </div>
+        </div>
+    </main>
+
+    <nav class="bottom-nav">
+        <a href="#" onclick="navigate('home')" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12.97 2.59a1.5 1.5 0 00-1.94 0l-7.5 6.363A1.5 1.5 0 003 10.097V19.5A1.5 1.5 0 004.5 21h4.75a.75.75 0 00.75-.75V14h4v6.25c0 .414.336.75.75.75h4.75a1.5 1.5 0 001.5-1.5v-9.403a1.5 1.5 0 00-.53-1.144l-7.5-6.363z"/>
+            </svg>
+            <span>Home</span>
+        </a>
+        <a href="#" onclick="navigate('novidades')" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M16.5 3C19.538 3 22 5.5 22 9c0 7-7.5 11-10 12.5C9.5 20 2 16 2 9c0-3.5 2.5-6 5.5-6C9.36 3 11 4 12 5c1-1 2.64-2 4.5-2z"/>
+            </svg>
+            <span>Novidades</span>
+        </a>
+        <a href="#" onclick="navigate('ofertas')" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-3.5-6H14a.5.5 0 1 0 0-1h-4a2.5 2.5 0 1 1 0-5h1V6h2v2h2.5v2h-5a.5.5 0 1 0 0 1h4a2.5 2.5 0 1 1 0 5h-1v2h-2v-2H8.5v-2z"/>
+            </svg>
+            <span>Ofertas</span>
+        </a>
+    </nav>
+
+    <script src="scripts.js"></script>
+</body>
+</html>
