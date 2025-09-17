@@ -435,6 +435,7 @@ Resumo do dia (2025-09-17):
 - Efetuado push do branch "main" com o merge unificado.
 - Feita verificação com fetch --prune e listagem de branches para garantir consistência.
 - Atualização deste ChatIA.md e higiene do repositório.
+- Removida também a branch local auxiliar `merge-main-into-master-2025-09-17` (já incorporada ao `main`).
 
 **Usuário:** depois que eu aperto em entrar na loja ele fica ssim desse jeito corrija isso por favor e não esqueça de adicionar nossas conversas no ChatIA.md
 
